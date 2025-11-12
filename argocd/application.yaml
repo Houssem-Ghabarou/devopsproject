@@ -9,7 +9,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/your-username/react-devops-app.git
+    repoURL: https://github.com/houssemghabarou/react-devops-app.git
     targetRevision: HEAD
     path: helm/react-app
     helm:

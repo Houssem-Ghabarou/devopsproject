@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_REGISTRY = 'docker.io'
-        DOCKER_IMAGE = 'your-dockerhub-username/react-devops-app'
+        DOCKER_IMAGE = 'houssemghabarou/react-devops-app'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
         DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
         TRIVY_SEVERITY = 'HIGH,CRITICAL'

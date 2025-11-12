@@ -3,7 +3,7 @@
 replicaCount: 3
 
 image:
-  repository: your-dockerhub-username/react-devops-app
+  repository: houssemghabarou/react-devops-app
   pullPolicy: Always
   tag: "latest"
 

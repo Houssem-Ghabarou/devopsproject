@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
       - name: react-app
-        image: your-dockerhub-username/react-devops-app:latest
+        image: houssemghabarou/react-devops-app:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
