@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: devops-project
+data:
+  kubernetes-cluster.json: |
+    {
+      "dashboard": {
+        "title": "Kubernetes Cluster Monitoring",
+        "panels": [
+          {
+            "title": "Pod CPU Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"devops-project\"}[5m])) by (pod)"
+              }
+            ]
+          },
+          {
+            "title": "Pod Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(container_memory_usage_bytes{namespace=\"devops-project\"}) by (pod)"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+  react-app.json: |
+    {
+      "dashboard": {
+        "title": "React Application Monitoring",
+        "tags": ["react", "devops"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "HTTP Request Rate",
+            "type": "graph",
+            "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "rate(nginx_http_requests_total{app=\"react-app\"}[5m])",
+                "legendFormat": "{{method}} {{status}}"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Response Time",
+            "type": "graph",
+            "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(nginx_http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "p95"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Active Pods",
+            "type": "stat",
+            "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "count(kube_pod_status_phase{namespace=\"devops-project\",phase=\"Running\"})"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "CPU Usage",
+            "type": "gauge",
+            "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"devops-project\",pod=~\"react-app.*\"}[5m]))"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Memory Usage",
+            "type": "gauge",
+            "gridPos": {"x": 12, "y": 8, "w": 6, "h": 4},
+            "targets": [
+              {
+                "expr": "sum(container_memory_usage_bytes{namespace=\"devops-project\",pod=~\"react-app.*\"})"
+              }
+            ]
+          }
+        ]
+      }
+    }

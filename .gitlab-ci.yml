@@ -1,0 +1,94 @@
+stages:
+  - build
+  - scan
+  - test
+  - push
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  IMAGE_NAME: $CI_REGISTRY_IMAGE
+  IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+before_script:
+  - docker info
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - echo "Building Docker image..."
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    - docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest
+    - docker save $IMAGE_NAME:$IMAGE_TAG -o image.tar
+  artifacts:
+    paths:
+      - image.tar
+    expire_in: 1 hour
+
+security_scan:
+  stage: scan
+  image: aquasec/trivy:latest
+  dependencies:
+    - build
+  script:
+    - echo "Scanning image for vulnerabilities..."
+    - trivy image --input image.tar --severity HIGH,CRITICAL --exit-code 0 --no-progress
+    - trivy image --input image.tar --severity HIGH,CRITICAL --format json --output trivy-report.json
+  artifacts:
+    reports:
+      container_scanning: trivy-report.json
+    paths:
+      - trivy-report.json
+    expire_in: 1 week
+  allow_failure: true
+
+test:
+  stage: test
+  image: docker:latest
+  services:
+    - docker:dind
+  dependencies:
+    - build
+  script:
+    - docker load -i image.tar
+    - echo "Running tests..."
+    - docker run --rm $IMAGE_NAME:$IMAGE_TAG sh -c "echo 'Tests would run here'"
+
+push:
+  stage: push
+  image: docker:latest
+  services:
+    - docker:dind
+  dependencies:
+    - build
+  script:
+    - docker load -i image.tar
+    - echo "Logging in to Docker registry..."
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+    - echo "Pushing image to registry..."
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+    - docker push $IMAGE_NAME:latest
+  only:
+    - main
+    - master
+
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - echo "Deploying to Kubernetes..."
+    - kubectl config use-context $KUBE_CONTEXT
+    - kubectl apply -f k8s/namespace.yaml
+    - kubectl apply -f k8s/configmap.yaml
+    - sed -i "s|image:.*|image: $IMAGE_NAME:$IMAGE_TAG|g" k8s/deployment.yaml
+    - kubectl apply -f k8s/deployment.yaml
+    - kubectl apply -f k8s/service.yaml
+    - kubectl rollout status deployment/react-app -n devops-project --timeout=5m
+  only:
+    - main
+    - master
+  when: manual
